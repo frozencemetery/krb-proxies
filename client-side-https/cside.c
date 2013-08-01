@@ -33,33 +33,20 @@
 
 krb5_data *
 krb5_cproxy_process(char *servername, char *port, krb5_data *request) {
-  char *req;
-  gsize out_len;
-  char *fmt = "POST / HTTP/1.0\r\n"
-    "Content-type: application/kerberos\r\n"
-    "Content-length: %d\r\n"
-    "\r\n%s";
-
-  char *g_buf = g_base64_encode((guchar *) request->data, request->length);
-  size_t reqlen = asprintf(&req, fmt, strlen(g_buf), g_buf);
-  g_free(g_buf);
-
   /* SSL init */
   SSL_library_init(); /* always returns 1 */
-  OpenSSL_add_all_algorithms();
   SSL_load_error_strings();
+  OpenSSL_add_all_algorithms();
   const SSL_METHOD *method = SSLv23_client_method(); /* includes TLSv1 */
   if (!method) {
     ERR_print_errors_fp(stderr);
     EVP_cleanup();
-    free(req);
     return NULL;
   }
   SSL_CTX *gamma = SSL_CTX_new(method);
   if (!gamma) {
     ERR_print_errors_fp(stderr);
     EVP_cleanup();
-    free(req);
     return NULL;
   }
   SSL *ssl = SSL_new(gamma);
@@ -67,9 +54,20 @@ krb5_cproxy_process(char *servername, char *port, krb5_data *request) {
     ERR_print_errors_fp(stderr);
     SSL_CTX_free(gamma);
     EVP_cleanup();
-    free(req);
     return NULL;
   }
+
+  /* Encoding */
+  char *req;
+  gsize out_len;
+  char *fmt = "POST / HTTP/1.0\r\n"
+    "Host: %s\r\n" /* MSFT gets upset without this */
+    "Content-type: application/kerberos\r\n"
+    "Content-length: %d\r\n"
+    "\r\n%s";
+  char *g_buf = g_base64_encode((guchar *) request->data, request->length);
+  size_t reqlen = asprintf(&req, fmt, servername, strlen(g_buf), g_buf);
+  g_free(g_buf);
 
   /* connect to other proxy */
   struct addrinfo khints, *kserverdata;
@@ -145,12 +143,12 @@ krb5_cproxy_process(char *servername, char *port, krb5_data *request) {
     length = SSL_read(ssl, bufptr, BUF_SIZE - 1 + bufptr - buf);
     printf("length: %d\n", length);
     if (length < 0) {
-    ERR_print_errors_fp(stderr); /* maybe? */
-    close(fd_prox);
-    SSL_free(ssl);
-    SSL_CTX_free(gamma);
-    EVP_cleanup();
-    return NULL;
+      ERR_print_errors_fp(stderr); /* maybe? */
+      close(fd_prox);
+      SSL_free(ssl);
+      SSL_CTX_free(gamma);
+      EVP_cleanup();
+      return NULL;
     }
     bufptr += length;
   } while (length > 0);
