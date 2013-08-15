@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2013, Red Hat, Inc.
  * All rights reserved.
  *
@@ -29,16 +29,18 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "cside.h"
+#define _GNU_SOURCE
 
-#include <signal.h>
+#include <krb5.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-/* gather a request from the client */
-krb5_data *krb5_cproxy_listen(int fd);
+/* Internal use */
+void asn1_writeout(char **ptr, int *lenlen, int *len, int i);
 
-/* send a reply to the client */
-int krb5_cproxy_respond(int fd, krb5_data *response);
+/* Marshall krb5 message into proxied form */
+krb5_data *asn1_encode(krb5_data *raw, char *realm);
 
-/* for testing purposes*/
-void sigchild_handler(int unused);
-int main(int argc, char *argv[]);
+/* Turn proxied message into krb5.  NULL on failure. */
+krb5_data *asn1_decode(unsigned char *enc);

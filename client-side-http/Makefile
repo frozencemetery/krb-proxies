@@ -31,22 +31,27 @@ CWARNS = --std=gnu99 -Wall -Wextra -pedantic
 CDEBUG = -O3 # use for maximal warning checks
 #CDEBUG = -O0 -ggdb # use for debugging
 
-CFLAGS = $(shell pkg-config --cflags glib-2.0) $(CWARNS) $(CDEBUG)
-LFLAGS = $(shell pkg-config --libs glib-2.0)
+CFLAGS = $(CWARNS) $(CDEBUG)
+LFLAGS =
 
 all: test
 
-cside.o: cside.c cside.h
+asn1.o: asn1.h asn1.c
+	gcc -c $(CFLAGS) -o asn1.o asn1.c
+
+cside.o: cside.c cside.h asn1.h
 	gcc -c $(CFLAGS) -o cside.o cside.c
 
-cside_full.o: cside.h cside_full.h cside_full.c
-	gcc -c $(CFLAGS) -o cside_full.o cside_full.c
+test: cside.o asn1.o
+	gcc $(LFLAGS) -o test cside.o asn1.o
 
-test: cside_full.o cside.o
-	gcc $(LFLAGS) -o test cside_full.o cside.o
+asn1test: asn1.o asn1test.c
+	gcc $(LFLAGS) -o asn1test asn1.o asn1test.c
 
 clean:
 	rm -f a.out
 	rm -f *.o
 	rm -f *.gdb
+	rm -f *.gch
 	rm -f test
+	rm -f asn1test

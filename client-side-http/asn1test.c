@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2013, Red Hat, Inc.
  * All rights reserved.
  *
@@ -29,35 +29,28 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define _GNU_SOURCE
-
-#include <krb5.h>
-#include <netdb.h>
-#include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
 #include "asn1.h"
 
-#define BUF_SIZE 2048 /* 1024 is insufficiently large */
-#define NUM_PENDING 8
+int main() {
+  krb5_data input;
+  input.data =
+    "multas per gentes et multa per aequora vectus\n"
+    "advenio has miseras frater ad inferias\n"
+    "ut te postremo donarem munere mortis\n"
+    "et mutam nequiquam alloquerer cinerem\n"
+    "quandoquidem fortuna mihi tete abstulit ipsum\n"
+    "heu miser indigne frater adempte mihi\n"
+    "nunc tamen interea haec prisco quae more parentum\n"
+    "tradita sunt tristi munere ad inferias\n"
+    "accipe fraterno multum manantia fletu\n"
+    "atque in perpetuum frater ave atque vale\n"
+    "\n";
+  input.length = strlen(input.data);
 
-/* marshall, send to kdc, return reply */
-krb5_data *krb5_cproxy_process(char *servername, char *port, char *realm,
-                               krb5_data *request);
+  krb5_data *enc = asn1_encode(&input);
+  krb5_data *raw = asn1_decode((unsigned char *) enc->data);
 
-/* gather a request from the client */
-krb5_data *krb5_cproxy_listen(int fd);
+  printf("%s\n", raw->data);
 
-/* send a reply to the client */
-int krb5_cproxy_respond(int fd, krb5_data *response);
-
-/* for testing purposes*/
-void sigchild_handler(int unused);
-int main(int argc, char *argv[]);
+  return 0;
+}
