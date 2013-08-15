@@ -36,11 +36,14 @@ LFLAGS = $(shell pkg-config --libs glib-2.0 openssl)
 
 all: test
 
-cside.o: cside.c cside.h
+asn1.o: asn1.h asn1.c
+	gcc -c $(CFLAGS) -o asn1.o asn1.c
+
+cside.o: cside.c cside.h asn1.h
 	gcc -c $(CFLAGS) -o cside.o cside.c
 
-test: cside.o
-	gcc $(LFLAGS) -o test cside.o
+test: cside.o asn1.o
+	gcc $(LFLAGS) -o test cside.o asn1.o
 
 clean:
 	rm -f a.out

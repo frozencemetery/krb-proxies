@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2013, Red Hat, Inc.
  * All rights reserved.
  *
@@ -31,36 +31,12 @@
 
 #define _GNU_SOURCE
 
-#include <glib.h>
 #include <krb5.h>
-#include <netdb.h>
-#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
-#include <openssl/err.h>
-#include <openssl/ssl.h>
 
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/wait.h>
+krb5_data *asn1_encode(krb5_data *raw);
 
-#include "asn1.h"
-
-#define BUF_SIZE 2048 /* 1024 is insufficiently large */
-#define NUM_PENDING 8
-
-/* marshall, send to kdc, return reply */
-krb5_data *krb5_cproxy_process(char *servername, char *port, krb5_data *request);
-
-/* gather a request from the client */
-krb5_data *krb5_cproxy_listen(int fd);
-
-/* send a reply to the client */
-int krb5_cproxy_respond(int fd, krb5_data *response);
-
-/* for testing purposes*/
-void sigchild_handler(int unused);
-int main(int argc, char *argv[]);
+krb5_data *asn1_decode(unsigned char *enc);
