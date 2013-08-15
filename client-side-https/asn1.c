@@ -106,7 +106,10 @@ krb5_data *asn1_encode(krb5_data *raw) {
 }
 
 krb5_data *asn1_decode(unsigned char *enc) {
-  enc++; /* discard \x30 sequence tag */
+  if (*enc != 0x30) {
+    return NULL;
+  }
+  enc++;
   int str3len = 1 + (*enc > 0x80 ? *enc & ~0x80 : 0);
   int len3 = 0;
   if (str3len == 1) {
@@ -122,7 +125,10 @@ krb5_data *asn1_decode(unsigned char *enc) {
   }
   enc++;
 
-  enc++; /* discard \xa0 sequence identifier */
+  if (*enc != 0xa0) {
+    return NULL;
+  }
+  enc++;
   int str2len = 1 + (*enc > 0x80 ? *enc & ~0x80 : 0);
   int len2 = 0;
   if (str2len == 1) {
@@ -138,7 +144,10 @@ krb5_data *asn1_decode(unsigned char *enc) {
   }
   enc++;
 
-  enc++; /* discard \x04 payload tag */
+  if (*enc != 0x04) {
+    return NULL;
+  }
+  enc++;
   int str1len = 1 + (*enc > 0x80 ? *enc & ~0x80 : 0);
   int len1 = 0;
   if (str1len == 1) {
