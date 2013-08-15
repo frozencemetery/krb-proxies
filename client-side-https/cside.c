@@ -67,13 +67,16 @@ krb5_cproxy_process(char *servername, char *port, krb5_data *request) {
   /* Encoding */
   char *req;
   gsize out_len;
-  char *fmt = "POST / HTTP/1.0\r\n"
-    "Host: %s\r\n" /* MSFT gets upset without this */
+  char *fmt = "POST /KdcProxy HTTP/1.0\r\n"
+    "Cache-Control: no-cache\r\n"
+    "Pragma: no-cache\r\n"
+    "User-Agent: kerberos/1.0\r\n"
     "Content-type: application/kerberos\r\n"
     "Content-length: %d\r\n"
+    "Host: %s\r\n"
     "\r\n%s";
   char *g_buf = g_base64_encode((guchar *) request->data, request->length);
-  size_t reqlen = asprintf(&req, fmt, servername, strlen(g_buf), g_buf);
+  size_t reqlen = asprintf(&req, fmt, strlen(g_buf), servername, g_buf);
   g_free(g_buf);
 
   /* connect to other proxy */
