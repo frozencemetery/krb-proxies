@@ -208,6 +208,7 @@ int krb5_cproxy_respond(int fd_connector, krb5_data *response) {
 
 /* for forking off listeners */
 void sigchild_handler(int a) {
+  (void) a;
   while (waitpid(-1, NULL, WNOHANG) > 0);
 }
 
