@@ -31,8 +31,8 @@ CWARNS = --std=gnu99 -Wall -Wextra -pedantic
 CDEBUG = -O3 # use for maximal warning checks
 #CDEBUG = -O0 -ggdb # use for debugging
 
-CFLAGS = $(shell pkg-config --cflags glib-2.0 openssl) $(CWARNS) $(CDEBUG)
-LFLAGS = $(shell pkg-config --libs glib-2.0 openssl)
+CFLAGS = $(shell pkg-config --cflags openssl) $(CWARNS) $(CDEBUG)
+LFLAGS = $(shell pkg-config --libs openssl)
 
 all: test
 

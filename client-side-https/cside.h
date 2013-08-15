@@ -31,7 +31,6 @@
 
 #define _GNU_SOURCE
 
-#include <glib.h>
 #include <krb5.h>
 #include <netdb.h>
 #include <signal.h>
