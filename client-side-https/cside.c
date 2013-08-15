@@ -33,6 +33,8 @@
 
 krb5_data *
 krb5_cproxy_process(char *servername, char *port, krb5_data *request) {
+  printf("reqlen: %d\n", request->length);
+
   /* SSL init */
   SSL_library_init(); /* always returns 1 */
   SSL_load_error_strings();
@@ -65,8 +67,7 @@ krb5_cproxy_process(char *servername, char *port, krb5_data *request) {
   }
 
   /* Encoding */
-  char *req;
-  gsize out_len;
+  char *req, *tmp;
   char *fmt = "POST /KdcProxy HTTP/1.0\r\n"
     "Cache-Control: no-cache\r\n"
     "Pragma: no-cache\r\n"
@@ -74,10 +75,18 @@ krb5_cproxy_process(char *servername, char *port, krb5_data *request) {
     "Content-type: application/kerberos\r\n"
     "Content-length: %d\r\n"
     "Host: %s\r\n"
-    "\r\n%s";
-  char *g_buf = g_base64_encode((guchar *) request->data, request->length);
-  size_t reqlen = asprintf(&req, fmt, strlen(g_buf), servername, g_buf);
-  g_free(g_buf);
+    "\r\n";
+
+  krb5_data *asn1 = asn1_encode(request);
+  size_t reqlen = asprintf(&tmp, fmt, asn1->length, servername);
+  req = malloc(reqlen + asn1->length + 1);
+  memcpy(req, tmp, reqlen);
+  free(tmp);
+  tmp = req + reqlen;
+  memcpy(tmp, asn1->data, asn1->length);
+  reqlen += asn1->length;
+  free(asn1->data);
+  free(asn1);
 
   /* connect to other proxy */
   struct addrinfo khints, *kserverdata;
@@ -177,15 +186,7 @@ krb5_cproxy_process(char *servername, char *port, krb5_data *request) {
   }
   rep += 4;
 
-  guchar *res = g_base64_decode(rep, &out_len);
-
-  krb5_data *response = malloc(sizeof(krb5_data));
-  response->length = out_len;
-  response->data = malloc(sizeof(char)*(out_len + 1));
-  memcpy(response->data, res, out_len);
-  (response->data)[out_len] = '\0';
-
-  g_free(res);
+  krb5_data *response = asn1_decode((unsigned char *) rep);
   return response;
 }
 
