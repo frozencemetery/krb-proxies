@@ -52,6 +52,7 @@ krb5_cproxy_process(char *servername, char *port, char *realm,
     EVP_cleanup();
     return NULL;
   }
+#ifdef SSL_VERIFY
   SSL_CTX_set_verify(gamma, SSL_VERIFY_PEER, NULL);
   if (!SSL_CTX_set_default_verify_paths(gamma)) {
     ERR_print_errors_fp(stderr);
@@ -59,6 +60,7 @@ krb5_cproxy_process(char *servername, char *port, char *realm,
     EVP_cleanup();
     return NULL;
   }
+#endif
   SSL *ssl = SSL_new(gamma);
   if (!ssl) {
     ERR_print_errors_fp(stderr);
