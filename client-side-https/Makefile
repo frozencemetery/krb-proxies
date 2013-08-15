@@ -39,11 +39,8 @@ all: test
 cside.o: cside.c cside.h
 	gcc -c $(CFLAGS) -o cside.o cside.c
 
-cside_full.o: cside.h cside_full.h cside_full.c
-	gcc -c $(CFLAGS) -o cside_full.o cside_full.c
-
-test: cside_full.o cside.o
-	gcc $(LFLAGS) -o test cside_full.o cside.o
+test: cside.o
+	gcc $(LFLAGS) -o test cside.o
 
 clean:
 	rm -f a.out

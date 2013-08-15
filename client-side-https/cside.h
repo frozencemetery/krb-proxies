@@ -34,6 +34,7 @@
 #include <glib.h>
 #include <krb5.h>
 #include <netdb.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,3 +52,13 @@
 
 /* marshall, send to kdc, return reply */
 krb5_data *krb5_cproxy_process(char *servername, char *port, krb5_data *request);
+
+/* gather a request from the client */
+krb5_data *krb5_cproxy_listen(int fd);
+
+/* send a reply to the client */
+int krb5_cproxy_respond(int fd, krb5_data *response);
+
+/* for testing purposes*/
+void sigchild_handler(int unused);
+int main(int argc, char *argv[]);
