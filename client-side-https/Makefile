@@ -45,8 +45,12 @@ cside.o: cside.c cside.h asn1.h
 test: cside.o asn1.o
 	gcc $(LFLAGS) -o test cside.o asn1.o
 
+asn1test: asn1.o asn1test.c
+	gcc $(LFLAGS) -o asn1test asn1.o asn1test.c
+
 clean:
 	rm -f a.out
 	rm -f *.o
 	rm -f *.gdb
 	rm -f test
+	rm -f asn1test
