@@ -52,5 +52,6 @@ clean:
 	rm -f a.out
 	rm -f *.o
 	rm -f *.gdb
+	rm -f *.gch
 	rm -f test
 	rm -f asn1test
