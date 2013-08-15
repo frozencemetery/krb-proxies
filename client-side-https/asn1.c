@@ -31,142 +31,108 @@
 
 #include "asn1.h"
 
-krb5_data *asn1_encode(krb5_data *raw) {
+#define BUFSNEEDED(i) (1 + ((i) > (1 << 7) ? ((i) + 254) / 255 : 0))
+
+/* Request structure:
+ * '\x30' <len[0]>
+ *        '\xa0' <len[1]>
+ *               '\x04' <len[2]>
+ *                      <raw->data>
+ *        '\xa1' <len[3]>
+ *               '\x1b' <len[4]>
+ *                      <realm>
+ */
+const unsigned char magic[] = "\x30\xa0\x04\xa1\x1b"; /* ASN.1 tags */
+
+void asn1_writeout(char **pptr, int *lenlen, int *len, int i) {
+  char *ptr = *pptr;
+  *ptr = magic[i];
+  ptr++;
+
+  if (lenlen[i] == 1) {
+    *ptr = (char) (len[i]);
+    ptr++;
+  } else {
+    lenlen[i]--;
+    *ptr = 0x80 | lenlen[i];
+    ptr++;
+    while (lenlen[i] > 0) {
+      *ptr = (char) (len[i] >> (8*(lenlen[i] - 1)));
+      ptr++;
+      lenlen[i]--;
+    }
+  }
+
+  *pptr = ptr;
+  return;
+}
+
+krb5_data *asn1_encode(krb5_data *raw, char *realm) {
+  int len[5], lenlen[5];
+
+  len[2] = raw->length;
+  lenlen[2] = BUFSNEEDED(len[2]);
+
+  len[1] = len[2] + lenlen[2] + 1;
+  lenlen[1] = BUFSNEEDED(len[1]);
+
+  len[4] = strlen(realm);
+  lenlen[4] = BUFSNEEDED(len[4]);
+
+  len[3] = len[4] + lenlen[4] + 1;
+  lenlen[3] = BUFSNEEDED(len[3]);
+
+  len[0] = len[1] + len[4] + lenlen[1] + lenlen[3] + lenlen[4] + 3;
+  lenlen[0] = BUFSNEEDED(len[0]);
+
   krb5_data *enc = malloc(sizeof(krb5_data));
-
-  int len1 = raw->length;
-  int str1len = 1 +
-    (len1 > (1 << 7) ? (len1 + 254) / 255 : 0);
-
-  int len2 = len1 + str1len + 1;
-  int str2len = 1 +
-    (len2 > (1 << 7) ? (len2 + 254) / 255 : 0);
-
-  int len3 = len2 + str2len + 1 + 12;
-  int str3len = 1 +
-    (len3 > (1 << 7) ? (len3 + 254) / 255 : 0);
-
-  enc->length = len3 + str3len + 1;
+  enc->length = len[0] + lenlen[0] + 1;
   enc->data = malloc(enc->length + 1);
-  enc->data[enc->length] = '\0';
   char *ptr = enc->data;
 
-  *ptr = '\x30';
-  ptr++;
-  if (str3len == 1) {
-    *ptr = (char) (len3);
-    ptr++;
-  } else {
-    str3len--;
-    *ptr = 0x80 | str3len;
-    ptr++;
-    while (str3len > 0) {
-      *ptr = (char) (len3 >> (8*(str3len - 1)));
-      ptr++;
-      str3len--;
+  for (int i = 0; i <= 4; i++) {
+    asn1_writeout(&ptr, lenlen, len, i);
+    if (i == 2) {
+      memcpy(ptr, raw->data, raw->length);
+      ptr += raw->length;
+    } else if (i == 4) {
+      memcpy(ptr, realm, strlen(realm));
+      ptr += strlen(realm);
     }
   }
-  *ptr = '\xa0';
-  ptr++;
-  if (str2len == 1) {
-    *ptr = (char) (len2);
-    ptr++;
-  } else {
-    str2len--;
-    *ptr = 0x80 | str2len;
-    ptr++;
-    while (str2len > 0) {
-      *ptr = (char) (len2 >> (8*(str2len - 1)));
-      ptr++;
-      str2len--;
-    }
-  }
-  *ptr = '\x04';
-  ptr++;
-  if (str1len == 1) {
-    *ptr = (char) (len1);
-    ptr++;
-  } else {
-    str1len--;
-    *ptr = 0x80 | str1len;
-    ptr++;
-    while (str1len > 0) {
-      *ptr = (char) (len1 >> (8*(str1len - 1)));
-      ptr++;
-      str1len--;
-    }
-  }
-  memcpy(ptr, raw->data, raw->length);
-  ptr += raw->length;
 
-  char *magic = "\xa1\x0a\x1b\x08mkad2012";
-  memcpy(ptr, magic, 12);
-
+  enc->data[enc->length] = '\0';
   return enc;
 }
 
 krb5_data *asn1_decode(unsigned char *enc) {
-  if (*enc != 0x30) {
-    return NULL;
-  }
-  enc++;
-  int str3len = 1 + (*enc > 0x80 ? *enc & ~0x80 : 0);
-  int len3 = 0;
-  if (str3len == 1) {
-    len3 = *enc;
-  } else {
-    str3len--;
-    while (str3len > 0) {
-      enc++;
-      len3 <<= 8;
-      len3 |= *enc;
-      str3len--;
-    }
-  }
-  enc++;
+  int len[5], lenlen[5];
 
-  if (*enc != 0xa0) {
-    return NULL;
-  }
-  enc++;
-  int str2len = 1 + (*enc > 0x80 ? *enc & ~0x80 : 0);
-  int len2 = 0;
-  if (str2len == 1) {
-    len2 = *enc;
-  } else {
-    str2len--;
-    while (str2len > 0) {
-      enc++;
-      len2 <<= 8;
-      len2 |= *enc;
-      str2len--;
+  for (int i = 0; i <= 2; i++) {
+    if (*enc != magic[i]) {
+      return NULL;
     }
-  }
-  enc++;
+    enc++;
 
-  if (*enc != 0x04) {
-    return NULL;
-  }
-  enc++;
-  int str1len = 1 + (*enc > 0x80 ? *enc & ~0x80 : 0);
-  int len1 = 0;
-  if (str1len == 1) {
-    len1 = *enc;
-  } else {
-    str1len--;
-    while (str1len > 0) {
-      enc++;
-      len1 <<= 8;
-      len1 |= *enc;
-      str1len--;
+    lenlen[i] = 1 + (*enc > 0x80 ? *enc & ~0x80 : 0);
+    if (lenlen[i] == 1) {
+      len[i] = *enc;
+    } else {
+      for (len[i] = 0; lenlen[i] > 1; lenlen[i]--) {
+        enc++;
+        len[i] <<= 8;
+        len[i] |= *enc;
+      }
     }
+    enc++;
   }
-  enc++;
 
   krb5_data *raw = malloc(sizeof(krb5_data));
-  raw->length = len1;
-  raw->data = malloc(len1);
-  memcpy(raw->data, enc, len1);
+  raw->length = len[2];
+  raw->data = malloc(len[2]);
+  memcpy(raw->data, enc, len[2]);
+
+  /* discard the remainder of the contents */
 
   return raw;
 }

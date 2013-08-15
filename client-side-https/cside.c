@@ -32,7 +32,8 @@
 #include "cside.h"
 
 krb5_data *
-krb5_cproxy_process(char *servername, char *port, krb5_data *request) {
+krb5_cproxy_process(char *servername, char *port, char *realm,
+                    krb5_data *request) {
   printf("reqlen: %d\n", request->length);
 
   /* SSL init */
@@ -77,7 +78,7 @@ krb5_cproxy_process(char *servername, char *port, krb5_data *request) {
     "Host: %s\r\n"
     "\r\n";
 
-  krb5_data *asn1 = asn1_encode(request);
+  krb5_data *asn1 = asn1_encode(request, realm);
   size_t reqlen = asprintf(&tmp, fmt, asn1->length, servername);
   req = malloc(reqlen + asn1->length + 1);
   memcpy(req, tmp, reqlen);
@@ -213,11 +214,12 @@ void sigchild_handler(int a) {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 2) {
-    fprintf(stderr, "usage: client servername\n");
+  if (argc != 3) {
+    fprintf(stderr, "usage: %s <servername> <REALM>\n", argv[0]);
     return 1;
   }
   char *servername = argv[1];
+  char *realm = argv[2];
 
   printf("Listening (TCP) on behalf of %s on port %s...\n", servername, "88");
 
@@ -292,7 +294,8 @@ int main(int argc, char *argv[]) {
       close(fd_socket);
 
       krb5_data *request = krb5_cproxy_listen(fd_connector);
-      krb5_data *response = krb5_cproxy_process(servername, "443", request);
+      krb5_data *response =
+        krb5_cproxy_process(servername, "443", realm, request);
       free(request->data);
       free(request);
 

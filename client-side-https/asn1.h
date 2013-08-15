@@ -36,7 +36,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Internal use */
+void asn1_writeout(char **ptr, int *lenlen, int *len, int i);
 
-krb5_data *asn1_encode(krb5_data *raw);
+/* Marshall krb5 message into proxied form */
+krb5_data *asn1_encode(krb5_data *raw, char *realm);
 
+/* Turn proxied message into krb5.  NULL on failure. */
 krb5_data *asn1_decode(unsigned char *enc);

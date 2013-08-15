@@ -52,7 +52,8 @@
 #define NUM_PENDING 8
 
 /* marshall, send to kdc, return reply */
-krb5_data *krb5_cproxy_process(char *servername, char *port, krb5_data *request);
+krb5_data *krb5_cproxy_process(char *servername, char *port, char *realm,
+                               krb5_data *request);
 
 /* gather a request from the client */
 krb5_data *krb5_cproxy_listen(int fd);
